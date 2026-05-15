@@ -1,50 +1,48 @@
-# RLAEG
+# RLAEG & MPDAEG: Functionality-Verification Adversarial Malware Attack Framework
 
-RLAEG is a reinforcement-learning framework for generating adversarial malware samples against malware classifiers. It provides Gym environments for score-based and label-based malware evasion, SAC training code, and a multi-task policy-distillation workflow for distilling several teacher policies into one student policy.
+> Official implementation of **IEEE TIFS 2024** paper: *Functionality-Verification Attack Framework Based on Reinforcement Learning Against Static Malware Detectors*
 
-This repository is intended for authorized malware-research experiments only. Use isolated analysis environments and only work with files you are allowed to inspect and modify.
+This repository provides a reproducible implementation of reinforcement-learning-based adversarial malware generation frameworks: **RLAEG (RL-based Adversarial Example Generation)** and **MPDAEG (Multi-task Policy Distillation-based Adversarial Example Generation)**. The framework targets black-box static malware detectors and supports PE-file manipulation, detector feedback, expert-agent training, and multi-task policy distillation.
 
-## Repository Layout
+This code is released for educational, reproducibility, and defensive security research only. Use it in isolated environments and only with binaries that you are authorized to analyze.
 
-```text
-RLAEG/
-|-- agents/
-|   |-- agent.py                 # SAC teacher/attack agent
-|   |-- Student_net.py           # Student DQN used by policy distillation
-|   `-- common/                  # Shared model, replay buffer, plotting utilities
-|-- envs/
-|   |-- env/                     # Gym malware-score and malware-label environments
-|   |-- controls/                # PE manipulation actions
-|   `-- utils/                   # Feature extraction, classifier interface, result saving
-|-- models/
-|   |-- classifiers/             # Pretrained classifier artifacts
-|   `-- MalConv2_main/           # MalConv model implementations and helpers
-|-- scripts/
-|   |-- main_func.py             # SAC training/evaluation entry point
-|   |-- Train_test.py            # Shared SAC train/test loops
-|   |-- PD_malware.py            # Multi-task policy distillation
-|   `-- make_results.py          # CSV result writer
-`-- data/
-    `-- section_names.txt        # Common PE section names
-```
+## System Requirements
 
-Malware samples are not included. Create the expected local data folders before running experiments.
+- Linux recommended for large-scale experiments
+- Python 3.6.3 reference environment; Python >= 3.7 is recommended if dependency compatibility allows
+- CUDA-capable GPU recommended for training neural policies and MalConv-style models
+- UPX installed and available on `PATH` for UPX packing/unpacking actions
+- Windows PE samples for malware-evasion experiments
 
-## Environment
+## Installation
 
-Python 3.8+ is recommended. The code was syntax-checked with Python 3.10.
-
-Install the main Python dependencies:
+Create an isolated environment:
 
 ```bash
-pip install numpy torch gym tensorboardX matplotlib seaborn scikit-learn joblib pefile lief tqdm
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
 ```
 
-Some PE actions call the external `upx` executable. Install UPX and make sure it is available on `PATH` if you use packing or unpacking actions.
+On Windows:
 
-## Data And Models
+```powershell
+python -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install --upgrade pip
+```
 
-Expected sample directories:
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run all commands from the repository root so package imports resolve consistently. If you use CUDA, install the PyTorch build that matches your CUDA version from the official PyTorch instructions, then install the remaining dependencies from `requirements.txt`.
+
+## Data And Model Setup
+
+Malware samples are not included in this repository. Prepare local directories such as:
 
 ```text
 data/
@@ -57,7 +55,7 @@ data/
 `-- score_adv_test_malware/
 ```
 
-The default classifier artifacts are loaded from:
+Default classifier artifacts are expected under:
 
 ```text
 models/classifiers/
@@ -81,46 +79,58 @@ RLAEG_ADV_LABEL_TEST_MALWARE_DIR=/path/to/save/label_adv_test_malware
 RLAEG_ADV_SCORE_TEST_MALWARE_DIR=/path/to/save/score_adv_test_malware
 ```
 
-## Running SAC Training
+## 📦 Repository Contents
 
-The SAC training entry point is:
+`agents/`: SAC expert agent and distilled student policy implementations
+
+`envs/`: Gym environments for malware-score and malware-label attack settings
+
+`envs/controls/`: PE manipulation actions used to generate adversarial variants
+
+`envs/utils/`: Feature extraction, classifier interface, and result-saving utilities
+
+`models/`: Victim detector components, MalConv variants, and classifier artifacts
+
+`models/MalConv2_main/`: MalConv-GCT and low-memory MalConv model implementations
+
+`scripts/`: Training, evaluation, and multi-task policy distillation entry points
+
+`data/`: Lightweight metadata files and expected local dataset folder structure
+
+## 🚀 Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/Yi-fe/RLAEG.git
+cd RLAEG
+
+# Create and activate an environment
+python -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run SAC-based RLAEG training against the score-based malware environment
 python scripts/main_func.py --env_name malware-score-v0
-```
 
-The registered Gym environments are:
-
-```text
-malware-score-v0
-malware-label-v0
-```
-
-Outputs are written under `scripts/outputs/<env>/<timestamp>/`.
-
-## Running Policy Distillation
-
-`scripts/PD_malware.py` trains a student policy from multiple task-specific teacher policies. By default it expects teacher checkpoints in `scripts/teacher_models/`; override that with `RLAEG_TEACHER_MODEL_PATH` or `--teacher_model_path`.
-
-```bash
+# Run multi-task policy distillation with pretrained expert agents
 python scripts/PD_malware.py \
   --env_name malware-score-v0 \
   --training_malicious_path data/Train_Malicious \
   --teacher_model_path scripts/teacher_models/
 ```
 
-Important options:
+Registered Gym environments:
 
 ```text
---task_count       Number of teacher/student task heads, default 5
---file_groups      Number of malware file groups, default 9
---max_turn         Maximum modification turns per sample, default 10
---update_steps     Student update steps after each teacher rollout, default 500
+malware-score-v0
+malware-label-v0
 ```
 
 ## Validation
 
-A lightweight syntax check for every Python file:
+Run a lightweight syntax check for every Python file:
 
 ```bash
 python -B - <<'PY'
@@ -134,12 +144,27 @@ print('AST parse OK')
 PY
 ```
 
-Before publishing, remove generated files such as `__pycache__/`, experiment outputs, TensorBoard logs, and generated adversarial samples unless you intentionally want to release them.
+Before publishing or archiving results, remove generated files such as `__pycache__/`, experiment outputs, TensorBoard logs, local malware samples, and generated adversarial binaries unless they are intentionally part of the release.
 
-## Notes
+## 📝 Citation
 
-- The project uses Gym registration from `envs/__init__.py`.
-- `envs/utils/interface.py` loads the gradient-boosting classifier at import time.
-- LIEF is required by PE feature extraction and malware environment modules.
-- UPX-dependent actions fail gracefully only when UPX is installed and reachable.
-- Keep malware samples and generated adversarial binaries out of public commits unless your release policy explicitly allows them.
+If you use this code in your research, please cite our paper:
+
+```bibtex
+@article{tian2024functionality,
+  title={Functionality-Verification Attack Framework Based on Reinforcement Learning Against Static Malware Detectors},
+  author={Tian, Buwei and Jiang, Junyong and He, Zichen and Yuan, Xin and Dong, Lu and Sun, Changyin},
+  journal={IEEE Transactions on Information Forensics and Security},
+  volume={19},
+  pages={8500--8514},
+  year={2024},
+  publisher={IEEE},
+  doi={10.1109/TIFS.2024.3453047}
+}
+```
+
+## 📄 License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+Note: This research is for educational and defensive security purposes only. The authors are not responsible for any misuse of this code.
