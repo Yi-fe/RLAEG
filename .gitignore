@@ -7,9 +7,9 @@ dist/
 *.egg-info/
 
 # Virtual environments and local configuration
-.venv/
-venv/
-env/
+/.venv/
+/venv/
+/env/
 .env
 .env.*
 

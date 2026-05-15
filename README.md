@@ -12,6 +12,7 @@ This code is released for educational, reproducibility, and defensive security r
 - Python 3.6.3 reference environment; Python >= 3.7 is recommended if dependency compatibility allows
 - CUDA-capable GPU recommended for training neural policies and MalConv-style models
 - UPX installed and available on `PATH` for UPX packing/unpacking actions
+- `angr` available for CFG-based functionality verification
 - Windows PE samples for malware-evasion experiments
 
 ## Installation
@@ -40,6 +41,8 @@ pip install -r requirements.txt
 
 Run all commands from the repository root so package imports resolve consistently. If you use CUDA, install the PyTorch build that matches your CUDA version from the official PyTorch instructions, then install the remaining dependencies from `requirements.txt`.
 
+CFG-based functionality verification is enabled by default. When a generated sample evades a victim detector, RLAEG extracts the original and modified CFGs with `angr` and saves the sample only if the two CFG signatures are identical. Set `RLAEG_ENABLE_CFG_CHECK=0` only when you intentionally want to reproduce the detector-only attack baseline.
+
 ## 📦 Repository Contents
 
 `agents/`: SAC expert agent and distilled student policy implementations
@@ -49,6 +52,8 @@ Run all commands from the repository root so package imports resolve consistentl
 `envs/controls/`: PE manipulation actions used to generate adversarial variants
 
 `envs/utils/`: Feature extraction, classifier interface, and result-saving utilities
+
+`functionality_verification/`: CFG extraction and comparison utilities for validating generated samples
 
 `models/`: Victim detector components, MalConv variants, and classifier artifacts
 
